@@ -3,11 +3,11 @@ cask "dualcommander" do
   os macos: "darwin", linux: "linux"
   ext = on_system_conditional macos: "zip", linux: "tar.xz"
 
-  version "0.2.2"
-  sha256 arm:          "9bbe7ee9d382ac060417af67f1ae6e7b2a6adb9694568db18ba0f345a33f0a73",
-         intel:        "aea2757fa0e15e5dd22e36a23f12151cbc5fa211729a5249a251eda7caa2813e",
-         arm64_linux:  "96cd55b9a42791817c89d1e35c6c1edab52e31636bbb358cbc7fedcf93fb7b48",
-         x86_64_linux: "1fc2c673e7b0f752a96592ef1c4699a66677836fa65eeaf8fd25829279aa225b"
+  version "0.3.0"
+  sha256 arm:          "e4cec14ce00aabc38c9a22888147ff6674e43e2ca90254521ebb28d4a346cf76",
+         intel:        "2b6a19b8d68b70910179be82b28c69bd585f1648473fc007ed51cb7b6620f718",
+         arm64_linux:  "04aa150b9356b493fcbcff1a95ae5da74f37f5b3957b867592408a4078493dce",
+         x86_64_linux: "a82b2856854ea6e9d6e4c502e43a089cecd7f035642766419a58eadbf585b3f1"
 
   url "https://github.com/dualcommander/dualcommander/releases/download/v#{version}/dualcommander-#{os}-#{arch}.#{ext}"
   name "DualCommander"
