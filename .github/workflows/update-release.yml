@@ -27,6 +27,7 @@ jobs:
       - name: Update version and release hashes
         id: update
         env:
+          GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         shell: bash
         run: |
@@ -47,9 +48,7 @@ jobs:
 
           work=$(mktemp -d)
           trap 'rm -rf "$work"' EXIT
-          repo=https://github.com/dualcommander/dualcommander
-          curl --fail --silent --show-error --location --max-time 60 --retry 3 \
-            "https://api.github.com/repos/dualcommander/dualcommander/releases/tags/$RELEASE_TAG" > "$work/release.json"
+          gh api "repos/dualcommander/dualcommander/releases/tags/$RELEASE_TAG" > "$work/release.json"
           jq -e --arg tag "$RELEASE_TAG" \
             '.draft == false and .prerelease == false and .tag_name == $tag' "$work/release.json" > /dev/null
           cp "$cask" "$work/cask.rb"
@@ -61,8 +60,8 @@ jobs:
               [.assets[] | select(.name == $name)] | select(length == 1) | .[0] |
               [.size, (.digest // "-")] | @tsv' "$work/release.json")
             read -r size digest <<< "$metadata"
-            curl --fail --silent --show-error --location --max-time 120 --retry 3 \
-              "$repo/releases/download/$RELEASE_TAG/$name" -o "$work/asset"
+            gh release download "$RELEASE_TAG" --repo dualcommander/dualcommander \
+              --pattern "$name" --output "$work/asset" --clobber
             [[ "$size" =~ ^[1-9][0-9]*$ && $(stat -c %s "$work/asset") == "$size" ]]
             checksum=$(sha256sum "$work/asset" | cut -d ' ' -f 1)
             [[ "$digest" == '-' || "$digest" == "sha256:$checksum" ]]

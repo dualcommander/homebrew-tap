@@ -9,20 +9,9 @@ cask "dualcommander" do
          arm64_linux:  "05ba14b77008d027556f0d30e90a6c7bd1e5c9bd04a6317e7fa2f95c252a1b05",
          x86_64_linux: "6db0ecdd57cd39d0795b5abff684df0069ed35a3066dc4fd22ff99a5019936df"
 
-  url "https://github.com/dualcommander/dualcommander/releases/download/v#{version}/dualcommander-#{os}-#{arch}.#{ext}"
-  name "DualCommander"
-  desc "Keyboard-friendly two-pane file manager"
-  homepage "https://dualcommander.github.io/"
-
-  livecheck do
-    url :url
-    strategy :github_latest
-  end
-
   on_macos do
     app "DualCommander.app"
   end
-
   on_linux do
     binary "dualcommander/usr/local/bin/dualcommander"
 
@@ -35,5 +24,15 @@ cask "dualcommander" do
         No desktop launcher or icon is installed by this cask.
       EOS
     end
+  end
+
+  url "https://github.com/dualcommander/dualcommander/releases/download/v#{version}/dualcommander-#{os}-#{arch}.#{ext}"
+  name "DualCommander"
+  desc "Keyboard-friendly two-pane file manager"
+  homepage "https://dualcommander.github.io/"
+
+  livecheck do
+    url :url
+    strategy :github_latest
   end
 end

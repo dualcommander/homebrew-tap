@@ -167,7 +167,11 @@ separate Apps are needed for separate credential authority.
 Source release CI dispatches **Update release** after stable release assets are
 published. Manual recovery: run that workflow on `main`, with `tag` such as
 `v0.5.0`. The updater runs directly in the workflow using Bash and the Ubuntu
-runner's `curl`, `jq`, and coreutils; no local updater or Python setup is needed.
+runner's `gh`, `jq`, and coreutils; no local updater or Python setup is needed.
+Release metadata and downloads use the built-in `GITHUB_TOKEN` via `GH_TOKEN`,
+not anonymous requests. The source repository must be public; this token cannot
+read another private repository. No additional secret or App installation is
+needed for public release reads. Authenticated requests still have rate limits.
 
 The updater downloads all four assets, hashes them, checks size and GitHub's
 digest when available, and changes only version and hashes. Drafts, prereleases,
