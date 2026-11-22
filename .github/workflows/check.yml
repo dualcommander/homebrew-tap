@@ -17,4 +17,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Validate edited cask
-        run: make ci-check
+        run: |
+          brew trust --cask dualcommander/tap/dualcommander
+          make ci-check
