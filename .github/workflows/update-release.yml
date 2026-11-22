@@ -1,0 +1,104 @@
+name: Update release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable release tag, for example v0.5.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-release
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    environment: homebrew
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Update version and release hashes
+        id: update
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo 'RELEASE_TAG must be a stable vMAJOR.MINOR.PATCH tag' >&2; exit 1;
+          }
+          version=${RELEASE_TAG#v}
+          cask=Casks/dualcommander.rb
+          [[ $(grep -cE '^  version "[^"]+"$' "$cask") == 1 ]]
+          current=$(sed -nE 's/^  version "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$cask")
+          [[ -n "$current" ]]
+          if [[ "$version" == "$current" ]] || ! printf '%s\n' "$current" "$version" | sort -V -C; then
+            echo "Cask already at $current; skipping $RELEASE_TAG"
+            echo 'updated=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          work=$(mktemp -d)
+          trap 'rm -rf "$work"' EXIT
+          repo=https://github.com/dualcommander/dualcommander
+          curl --fail --silent --show-error --location --max-time 60 --retry 3 \
+            "https://api.github.com/repos/dualcommander/dualcommander/releases/tags/$RELEASE_TAG" > "$work/release.json"
+          jq -e --arg tag "$RELEASE_TAG" \
+            '.draft == false and .prerelease == false and .tag_name == $tag' "$work/release.json" > /dev/null
+          cp "$cask" "$work/cask.rb"
+          sed -i -E "s/^  version \"[^\"]+\"$/  version \"$version\"/" "$work/cask.rb"
+          for pair in arm:darwin-arm64.zip intel:darwin-amd64.zip arm64_linux:linux-arm64.tar.xz x86_64_linux:linux-amd64.tar.xz; do
+            key=${pair%%:*}
+            name=dualcommander-${pair#*:}
+            metadata=$(jq -er --arg name "$name" '
+              [.assets[] | select(.name == $name)] | select(length == 1) | .[0] |
+              [.size, (.digest // "-")] | @tsv' "$work/release.json")
+            read -r size digest <<< "$metadata"
+            curl --fail --silent --show-error --location --max-time 120 --retry 3 \
+              "$repo/releases/download/$RELEASE_TAG/$name" -o "$work/asset"
+            [[ "$size" =~ ^[1-9][0-9]*$ && $(stat -c %s "$work/asset") == "$size" ]]
+            checksum=$(sha256sum "$work/asset" | cut -d ' ' -f 1)
+            [[ "$digest" == '-' || "$digest" == "sha256:$checksum" ]]
+            pattern="\b$key:[[:space:]]+\"[0-9a-f]{64}\""
+            [[ $(grep -oE "$pattern" "$work/cask.rb" | wc -l) == 1 ]]
+            sed -i -E "s/(\b$key:[[:space:]]+\")[0-9a-f]{64}(\")/\1$checksum\2/" "$work/cask.rb"
+          done
+          cp "$work/cask.rb" "$cask"
+          echo "Updated cask to $RELEASE_TAG"
+          echo 'updated=true' >> "$GITHUB_OUTPUT"
+      - name: Authenticate Homebrew GitHub App
+        id: homebrew-app
+        if: steps.update.outputs.updated == 'true'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: dualcommander
+          repositories: homebrew-tap
+          permission-contents: write
+          permission-pull-requests: write
+      # App authentication ensures the PR triggers pull_request checks.
+      - uses: peter-evans/create-pull-request@v7
+        id: pr
+        if: steps.update.outputs.updated == 'true'
+        with:
+          token: ${{ steps.homebrew-app.outputs.token }}
+          branch: automation/homebrew-release
+          delete-branch: true
+          title: 'chore: update DualCommander to ${{ inputs.tag }}'
+          commit-message: 'chore: update DualCommander to ${{ inputs.tag }}'
+          body: Updates version and all four SHA-256 hashes from published DualCommander release assets. Required Cask checks must pass before auto-merge.
+          add-paths: Casks/dualcommander.rb
+      - name: Enable PR auto-merge
+        if: steps.pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ steps.homebrew-app.outputs.token }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: gh pr merge --auto --squash "$PR_URL"
