@@ -77,7 +77,7 @@ jobs:
         if: steps.update.outputs.updated == 'true'
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ vars.APP_ID }}
+          app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: dualcommander
           repositories: homebrew-tap

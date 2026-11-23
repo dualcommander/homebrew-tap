@@ -49,9 +49,9 @@ Repeat these steps for **both** `dualcommander/dualcommander` and
    Do not add other ref rules. Where available, disable administrator bypass
    of environment protection rules. Required reviewers are optional: enabling
    them pauses each deployment until approval, including cross-repo updates.
-3. Under **Environment variables**, click **Add variable**. Set **Name** to
-   `APP_ID` and **Value** to the numeric **App ID** recorded in step 1
-   (not Client ID or installation ID). Click **Add variable**.
+3. Under **Environment secrets**, click **Add secret**. Set **Name** to
+   `APP_ID` and **Secret** to the numeric **App ID** recorded in step 1
+   (not Client ID or installation ID). Click **Add secret**.
 4. Under **Environment secrets**, click **Add secret**. Set **Name** to
    `APP_PRIVATE_KEY`. Open the downloaded PEM file in a local text
    editor and paste its entire contents into **Secret**, including the
@@ -59,9 +59,9 @@ Repeat these steps for **both** `dualcommander/dualcommander` and
    (or the corresponding BEGIN/END lines present in your file), preserving
    line breaks. Click **Add secret**. Do not paste the filename or base64-encode
    the key.
-5. Confirm the variable appears under **Environment variables** and the secret
-   name appears under **Environment secrets**. GitHub does not display saved
-   secret values; use **Edit** to replace the key if needed.
+5. Confirm both names appear under **Environment secrets**. GitHub does not
+   display saved secret values; use **Edit** to replace either value if needed.
+   Remove any old `APP_ID` entry under **Environment variables**.
 
 Both privileged jobs declare `environment: homebrew`; PR check jobs do not.
 Configure these environment rules before running workflows: YAML references
@@ -96,8 +96,8 @@ the key in App settings if compromised. No stored installation token is needed.
 ### 4. Verify activation
 
 In each repository, open **Settings > Environments > homebrew**.
-Confirm `APP_ID` under **Environment variables**, `APP_PRIVATE_KEY` under
-**Environment secrets**, and the deployment ref rules from step 2. Secret values
+Confirm both `APP_ID` and `APP_PRIVATE_KEY` under **Environment secrets**,
+and the deployment ref rules from step 2. Secret values
 remain hidden. Confirm no repository/organization credential copies remain
 accessible outside the environment.
 
